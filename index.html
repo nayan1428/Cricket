@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>CricEmpire: Endless Auction & Trade Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- Optional Firebase SDKs for Live Online Multiplayer -->
+  <!--
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  -->
+  <style>
+    * {
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    body {
+      background-color: #090d16;
+      color: #f8fafc;
+      overflow-x: hidden;
+    }
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    @keyframes pulseBid {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .bid-pulse {
+      animation: pulseBid 0.35s ease-in-out;
+    }
+    .glass-card {
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.85), rgba(15, 23, 42, 0.95));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-20">
+
+  <!-- TOP APP BAR -->
+  <header class="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center shadow-lg shadow-emerald-950/50 font-black text-slate-950 text-lg">
+        CE
+      </div>
+      <div>
+        <div class="flex items-center gap-1.5">
+          <h1 class="font-extrabold text-sm tracking-tight text-white">CRIC<span class="text-emerald-400">EMPIRE</span></h1>
+          <span id="header-season-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">S1</span>
+        </div>
+        <p id="header-sub" class="text-[11px] text-slate-400 truncate max-w-[175px]">Setup Franchise</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <div id="header-purse-box" class="hidden text-right bg-slate-900 border border-slate-800 px-2.5 py-1 rounded-xl">
+        <div class="text-[9px] uppercase tracking-wider text-slate-400 font-semibold">Purse Left</div>
+        <div id="header-purse" class="text-xs font-extrabold text-emerald-400">₹100.00 Cr</div>
+      </div>
+      <button onclick="openRulesModal()" class="w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 hover:text-white text-xs font-bold">
+        ?
+      </button>
+    </div>
+  </header>
+
+  <!-- TOAST NOTIFICATION BANNER -->
+  <div id="toast-container" class="fixed top-16 left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-md pointer-events-none flex flex-col gap-2"></div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main id="app-container" class="flex-1 w-full max-w-lg mx-auto px-3.5 pt-3 pb-6">
+
+    <!-- ==================== VIEW 1: LOBBY & SETUP ==================== -->
+    <section id="view-lobby" class="space-y-4">
+      <div class="glass-card rounded-2xl p-4 relative overflow-hidden">
+        <div class="absolute -right-8 -top-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl"></div>
+        <span class="inline-block text-[10px] font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full mb-2">
+          100% Fictional Roster • Endless Seasons
+        </span>
+        <h2 class="text-xl font-black text-white leading-snug">Build Your T20 Dynasty</h2>
+        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+          Bid in live auctions, negotiate player trades, simulate ball-by-ball T20 leagues, and manage aging stars & youth prodigies season after season.
+        </p>
+      </div>
+
+      <!-- Manager & Franchise Form -->
+      <div class="glass-card rounded-2xl p-4 space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Manager Name</label>
+          <input id="input-manager" type="text" value="Coach Vikram" maxlength="20"
+            class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+            placeholder="Enter your name" />
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-xs font-semibold text-slate-300">Your Franchise Name</label>
+            <button onclick="randomizeFranchise()" class="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300">
+              ↻ Randomize
+            </button>
+          </div>
+          <input id="input-franchise" type="text" value="Ranchi Royals" maxlength="24"
+            class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+            placeholder="e.g. Mumbai Mavericks" />
+          <div class="flex flex-wrap gap-1.5 mt-2">
+            <button onclick="setFranchisePreset('Ranchi Royals')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg">Ranchi Royals</button>
+            <button onclick="setFranchisePreset('Bengaluru Blazers')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg">Bengaluru Blazers</button>
+            <button onclick="setFranchisePreset('Delhi Dragons')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg">Delhi Dragons</button>
+            <button onclick="setFranchisePreset('Chennai Spartans')" class="text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded-lg">Chennai Spartans</button>
+          </div>
+        </div>
+
+        <!-- Game Mode Toggle -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1.5">League Mode</label>
+          <div class="grid grid-cols-2 gap-2">
+            <button id="mode-btn-solo" onclick="selectGameMode('solo')"
+              class="p-3 rounded-xl border border-emerald-500 bg-emerald-500/15 text-left transition">
+              <div class="text-xs font-bold text-white">Solo vs Smart AI</div>
+              <div class="text-[10px] text-emerald-300 mt-0.5">Instant start • 4 Teams</div>
+            </button>
+            <button id="mode-btn-multi" onclick="selectGameMode('multi')"
+              class="p-3 rounded-xl border border-slate-700 bg-slate-900/80 text-left transition">
+              <div class="text-xs font-bold text-slate-200">Multiplayer Room</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Room Code & Firebase Sync</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Multiplayer Room Box (Hidden in Solo) -->
+        <div id="multiplayer-room-panel" class="hidden bg-slate-900/90 border border-slate-700/80 rounded-xl p-3 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <span class="text-[11px] font-bold text-amber-400">ROOM CODE</span>
+            <button onclick="copyRoomCode()" class="text-[11px] bg-slate-800 px-2.5 py-1 rounded-lg text-emerald-400 font-semibold">
+              Copy Invite Code
+            </button>
+          </div>
+          <div class="flex gap-2">
+            <input id="input-room-code" type="text" value="EMP-7492" maxlength="10"
+              class="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-center font-mono font-bold tracking-widest text-sm text-white uppercase" />
+            <button onclick="generateRoomCode()" class="px-3 py-2 bg-slate-800 rounded-lg text-xs font-semibold text-slate-300">New</button>
+          </div>
+          <p class="text-[10px] text-slate-400 leading-relaxed">
+            * Simulates live room peers right now so you can test immediately. Add your Firebase Realtime DB keys in code to sync across friends' phones!
+          </p>
+        </div>
+
+        <!-- Auction Format -->
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5">
+            <div class="text-[10px] text-slate-400">Starting Purse</div>
+            <div class="text-sm font-extrabold text-amber-400">₹100.00 Cr</div>
+          </div>
+          <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-2.5">
+            <div class="text-[10px] text-slate-400">Squad Rules</div>
+            <div class="text-sm font-extrabold text-white">11–18 Players (Max 6 OS)</div>
+          </div>
+        </div>
+
+        <button onclick="startNewCareer()"
+          class="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm tracking-wide shadow-lg shadow-emerald-950/60 active:scale-[0.99] transition">
+          ENTER AUCTION ARENA →
+        </button>
+
+        <button id="btn-resume-save" onclick="resumeSavedCareer()" class="hidden w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs border border-slate-700">
+          Resume Saved Dynasty
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 2: LIVE AUCTION ROOM ==================== -->
+    <section id="view-auction" class="hidden space-y-3">
+      <!-- Top Auction Status Strip -->
+      <div class="flex items-center justify-between bg-slate-900/90 border border-slate-800 rounded-2xl px-3.5 py-2.5">
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Lot Progress</div>
+          <div id="auction-progress" class="text-xs font-extrabold text-white">Player 1 of 56</div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="btn-auto-sim-auction" onclick="fastForwardCurrentLot()"
+            class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-300 border border-slate-700">
+            ⏭ Skip Lot
+          </button>
+          <button onclick="finishRemainingAuction()"
+            class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-[11px] font-bold text-amber-300 border border-amber-500/30">
+            Auto-Fill Rest
+          </button>
+        </div>
+      </div>
+
+      <!-- Current Player Auction Card -->
+      <div id="auction-card" class="glass-card rounded-2xl p-4 relative overflow-hidden">
+        <!-- Timer Pill -->
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-1.5">
+            <span id="auc-player-role" class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              BATTER
+            </span>
+            <span id="auc-player-os" class="hidden text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+              ✈ OVERSEAS
+            </span>
+            <span id="auc-player-tag" class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300">
+              MARQUEE
+            </span>
+          </div>
+
+          <div class="flex items-center gap-1.5 bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-full">
+            <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+            <span id="auc-timer" class="font-mono text-sm font-black text-white">10s</span>
+          </div>
+        </div>
+
+        <!-- Player Identity & Rating -->
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div id="auc-avatar" class="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 flex items-center justify-center font-black text-lg text-emerald-400 shadow-inner">
+              AR
+            </div>
+            <div>
+              <h3 id="auc-player-name" class="text-lg font-black text-white leading-tight">Aarav Rathore</h3>
+              <p id="auc-player-meta" class="text-xs text-slate-400 mt-0.5">Age 24 • Right-Hand Bat • Base: ₹1.50 Cr</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-[10px] text-slate-400 font-semibold uppercase">OVR</div>
+            <div id="auc-player-ovr" class="text-2xl font-black text-amber-400">86</div>
+          </div>
+        </div>
+
+        <!-- Skill Bars -->
+        <div class="grid grid-cols-3 gap-2 mt-3.5 pt-3 border-t border-slate-800/80">
+          <div class="bg-slate-950/60 rounded-xl p-2 text-center">
+            <div class="text-[10px] text-slate-400 font-semibold">BATTING</div>
+            <div id="auc-stat-bat" class="text-sm font-black text-emerald-400 mt-0.5">88</div>
+          </div>
+          <div class="bg-slate-950/60 rounded-xl p-2 text-center">
+            <div class="text-[10px] text-slate-400 font-semibold">BOWLING</div>
+            <div id="auc-stat-bowl" class="text-sm font-black text-sky-400 mt-0.5">32</div>
+          </div>
+          <div class="bg-slate-950/60 rounded-xl p-2 text-center">
+            <div class="text-[10px] text-slate-400 font-semibold">FIELDING</div>
+            <div id="auc-stat-field" class="text-sm font-black text-purple-400 mt-0.5">81</div>
+          </div>
+        </div>
+
+        <!-- Current Highest Bid Box -->
+        <div id="auc-bid-banner" class="mt-3.5 rounded-xl bg-slate-950 border border-slate-800 p-3 flex items-center justify-between">
+          <div>
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Current Highest Bid</div>
+            <div id="auc-current-bid" class="text-xl font-black text-white">₹1.50 Cr</div>
+          </div>
+          <div class="text-right">
+            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Held By</div>
+            <div id="auc-highest-bidder" class="text-xs font-extrabold text-amber-400">Opening Base</div>
+          </div>
+        </div>
+
+        <!-- Bidding Action Buttons -->
+        <div class="grid grid-cols-3 gap-2 mt-3">
+          <button onclick="placeUserBid(0.25)" class="py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-slate-950 font-black text-xs shadow-md transition">
+            + ₹25 L
+          </button>
+          <button onclick="placeUserBid(0.50)" class="py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs shadow-md transition">
+            + ₹50 L
+          </button>
+          <button onclick="placeUserBid(1.00)" class="py-3 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs shadow-md transition">
+            + ₹1.0 Cr
+          </button>
+        </div>
+
+        <!-- RTM Card Prompt -->
+        <div id="rtm-prompt-box" class="hidden mt-3 p-3 rounded-xl bg-amber-500/15 border border-amber-500/40 flex items-center justify-between gap-2">
+          <div>
+            <div class="text-xs font-black text-amber-300">⚡ RTM CARD AVAILABLE!</div>
+            <div id="rtm-prompt-text" class="text-[11px] text-slate-300">Match winning bid to retain player?</div>
+          </div>
+          <div class="flex gap-1.5">
+            <button onclick="resolveRTM(true)" class="px-3 py-2 rounded-lg bg-amber-400 text-slate-950 font-black text-xs">USE RTM</button>
+            <button onclick="resolveRTM(false)" class="px-2.5 py-2 rounded-lg bg-slate-800 text-slate-300 font-bold text-xs">PASS</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Franchise Purses Mini-Board -->
+      <div class="glass-card rounded-2xl p-3">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Franchise Purses & Squads</span>
+          <span id="user-rtm-count" class="text-[11px] font-bold text-amber-400">RTM Cards: 2</span>
+        </div>
+        <div id="auction-teams-grid" class="grid grid-cols-2 gap-2"></div>
+      </div>
+
+      <!-- Live Auction Feed -->
+      <div class="glass-card rounded-2xl p-3">
+        <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Live Hammer Log</div>
+        <div id="auction-log" class="space-y-1 max-h-28 overflow-y-auto text-[11px] text-slate-300"></div>
+      </div>
+    </section>
+
+    <!-- ==================== VIEW 3: SQUAD & LINEUP ==================== -->
+    <section id="view-squad" class="hidden space-y-3">
+      <div class="glass-card rounded-2xl p-3.5 flex items-center justify-between">
+        <div>
+          <h2 id="squad-team-title" class="text-base font-black text-white">Your Franchise Squad</h2>
+          <p id="squad-team-stats" class="text-xs text-slate-400 mt-0.5">0 Players • 0 Overseas • Purse: ₹100 Cr</p>
+        </div>
+        <button onclick="autoSelectBestXI()" class="px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+          ⚡ Auto Best XI
+        </button>
+      </div>
+
+      <!-- Role Filter Pills -->
+      <div class="flex gap-1.5 overflow-x-auto pb-1">
+        <button onclick="filterSquad('ALL')" class="squad-filter-btn px-3 py-1.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs">All</button>
+        <button onclick="filterSquad('XI')" class="squad-filter-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">Playing XI</button>
+        <button onclick="filterSquad('BAT')" class="squad-filter-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">Batters</button>
+        <button onclick="filterSquad('BOWL')" class="squad-filter-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">Bowlers</button>
+        <button onclick="filterSquad('AR')" class="squad-filter-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">All-Rounders</button>
+        <button onclick="filterSquad('WK')" class="squad-filter-btn px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs">Keepers</button>
+      </div>
+
+      <div id="squad-list" class="space-y-2"></div>
+    </section>
+
+    <!-- ==================== VIEW 4: PLAYER TRADING HUB ==================== -->
+    <section id="view-trade" class="hidden space-y-3.5">
+      <div class="glass-card rounded-2xl p-3.5 flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-black text-white">Transfer & Trade Window</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Swap players or offer purse cash with rival teams</p>
+        </div>
+        <button onclick="generateIncomingTradeOffer(true)" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-bold">
+          Refresh Offers
+        </button>
+      </div>
+
+      <!-- Incoming Offers From Rival Franchises -->
+      <div class="glass-card rounded-2xl p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">📩 Incoming Trade Offers</span>
+          <span id="incoming-trade-badge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">0 Pending</span>
+        </div>
+        <div id="incoming-trades-list" class="space-y-2">
+          <p class="text-xs text-slate-400 py-2">No incoming offers right now. Tap "Refresh Offers" or propose a trade below.</p>
+                                                                                      </div>
