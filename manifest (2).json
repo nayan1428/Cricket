@@ -1,0 +1,13 @@
+{
+  "background_color": "#ffffff",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Cricempire",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "cricempire",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "id": "com.cricempire.app",
+  "description": "Cricket auction and manager game"
+}
